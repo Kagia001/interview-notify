@@ -70,6 +70,9 @@ def log_parse(log_path, parser_stop):
     if check_trigger(line, 'Currently interviewing: {}'.format(args.nick)):
       logging.info('YOUR INTERVIEW IS HAPPENING ❗')
       notify(line, title='Your interview is happening❗', tags='rotating_light', priority=5)
+    elif check_trigger(line, '{}: If you are here, please say my name'.format(args.nick), disregard_bot_nicks=True):
+      logging.info('YOUR INTERVIEW IS HAPPENING ❗')
+      notify(line, title='Your interview is happening❗', tags='rotating_light', priority=5)
     elif check_trigger(line, 'Currently interviewing:'):
       logging.info('interview detected ⚠️')
       notify(line, title='Interview detected', tags='warning')
