@@ -1,6 +1,8 @@
 # interview-notify
 Push notifications from IRC for your private tracker interviews
 
+This fork is slightly edited to fit the RED interview July 2026
+
 <img src="https://i.imgur.com/ZLFyxgY.png">
 
 ## features
