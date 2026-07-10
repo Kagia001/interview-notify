@@ -137,7 +137,7 @@ def log_parse(log_path, parser_stop):
     elif check_trigger(line, '{}:'.format(args.nick), disregard_bot_nicks=True):
       logging.info('mention detected ⚠️')
       notify(line, title="You've been mentioned", tags='wave')
-    elif check_words(line, triggers=['quit', 'disconnect', 'part', 'left', 'leave']):
+    elif check_words(line, triggers=['quit', 'disconnect', 'left', 'leave']):
       logging.info('netsplit detected ⚠️')
       notify(line, title="Netsplit detected – requeue within 10min!", tags='electric_plug', priority=5)
     elif check_words(line, triggers=['kick'], check_nick=True) or 'You have been kicked' in line:
