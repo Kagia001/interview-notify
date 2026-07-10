@@ -7,7 +7,7 @@ from file_read_backwards import FileReadBackwards
 from hashlib import sha256
 from urllib.parse import urljoin
 
-VERSION = '1.2.10'
+VERSION = '1.2.10-Kagia001sFork'
 default_server = 'https://ntfy.sh/'
 
 parser = argparse.ArgumentParser(prog='interview_notify.py',
