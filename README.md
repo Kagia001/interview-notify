@@ -2,6 +2,7 @@
 Push notifications from IRC for your private tracker interviews
 
 This fork is slightly edited to fit the RED interview July 2026
+Heads up: the original project sends anonymous telemetry via ntfy. Specifically, your nick hashed, mode (red/orp), and version. I have not removed this, since the data collected is very minimal and your IP cannot be saved, but I think this should be disclosed. If you wish to disable this, you may comment out lines 156-158 in interview_notify.py.
 
 <img src="https://i.imgur.com/ZLFyxgY.png">
 
