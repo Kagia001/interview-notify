@@ -9,6 +9,7 @@ from urllib.parse import urljoin
 
 VERSION = '1.2.10-Kagia001sFork'
 default_server = 'https://ntfy.sh/'
+ACTIVE_WINDOW = 600 # seconds: also watch logs modified this close to the newest one
 
 parser = argparse.ArgumentParser(prog='interview_notify.py',
   description='IRC Interview Notifier v{}\nhttps://github.com/ftc2/interview-notify'.format(VERSION),
@@ -22,7 +23,7 @@ On mobile, I suggest enabling the 'Instant delivery' feature as well as 'Keep al
   formatter_class=argparse.RawDescriptionHelpFormatter)
 parser.add_argument('--topic', required=True, help='ntfy topic name to POST notifications to')
 parser.add_argument('--server', default=default_server, help='ntfy server to POST notifications to – default: {}'.format(default_server))
-parser.add_argument('--log-dir', required=True, dest='path', type=Path, help='path to IRC logs (continuously checks for newest file to parse)')
+parser.add_argument('--log-dir', required=True, dest='path', type=Path, help='path to IRC logs (continuously checks for recently-active files to parse)')
 parser.add_argument('--nick', required=True, help='your IRC nick')
 parser.add_argument('--check-bot-nicks', default=True, action=argparse.BooleanOptionalAction, help="attempt to parse bot's nick. disable if your log files are not like '<nick> message' – default: enabled")
 parser.add_argument('--bot-nicks', metavar='NICKS', default='Gatekeeper', help='comma-separated list of bot nicks to watch – default: Gatekeeper')
@@ -31,29 +32,32 @@ parser.add_argument('-v', action='count', default=5, dest='verbose', help='verbo
 parser.add_argument('--version', action='version', version='{} v{}'.format(parser.prog, VERSION))
 
 def log_scan():
-  """Poll dir for most recently modified log file and spawn a parser thread for the log"""
+  """Poll dir for recently-active log files and run a parser thread for each"""
   logging.info('scanner: watching logs in "{}"'.format(args.path))
-  curr = find_latest_log()
-  logging.debug('scanner: current log: "{}"'.format(curr.name))
-  parser, parser_stop = spawn_parser(curr)
-  parser.start()
+  parsers = {} # log path -> (thread, stop_event)
   while True:
-    sleep(0.5) # polling delay for checking for newer logfile
-    latest = find_latest_log()
-    if curr != latest:
-      curr = latest
-      logging.info('scanner: newer log found: "{}"'.format(curr.name))
-      parser_stop.set()
-      parser.join()
-      parser, parser_stop = spawn_parser(curr)
-      parser.start()
+    active = active_logs()
+    for path in active:
+      if path not in parsers:
+        logging.info('scanner: watching log "{}"'.format(path.name))
+        parser, parser_stop = spawn_parser(path)
+        parser.start()
+        parsers[path] = (parser, parser_stop)
+    for path in list(parsers):
+      if path not in active:
+        logging.debug('scanner: log went idle: "{}"'.format(path.name))
+        parser, parser_stop = parsers.pop(path)
+        parser_stop.set()
+        parser.join()
+    sleep(0.5) # polling delay for checking for log activity
 
-def find_latest_log():
-  """Find latest log file"""
+def active_logs():
+  """Find log files modified close to the most recent activity"""
   files = [f for f in args.path.iterdir() if f.is_file() and f.name not in ['.DS_Store', 'thumbs.db']]
   if len(files) == 0:
     crit_quit('no log files found')
-  return max(files, key=lambda f: f.stat().st_mtime)
+  newest = max(f.stat().st_mtime for f in files)
+  return {f for f in files if newest - f.stat().st_mtime <= ACTIVE_WINDOW}
 
 def spawn_parser(log_path):
   """Spawn new parser thread"""
