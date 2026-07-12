@@ -3,6 +3,7 @@
 import argparse, sys, threading, logging, re, requests
 from pathlib import Path
 from time import sleep
+from datetime import datetime
 from file_read_backwards import FileReadBackwards
 from hashlib import sha256
 from urllib.parse import urljoin
@@ -76,6 +77,17 @@ def spawn_parser(log_path):
   thread = threading.Thread(target=log_parse, args=(log_path, parser_stop))
   return thread, parser_stop
 
+def line_age(line):
+  """Seconds since the line's log timestamp; 0 if unparseable (treat as live)."""
+  t = re.match(r'(\w{3} \d{2} \d{2}:\d{2}:\d{2})', line)
+  if not t:
+    return 0
+  try:
+    when = datetime.strptime('{} {}'.format(datetime.now().year, t.group(1)), '%Y %b %d %H:%M:%S')
+  except ValueError:
+    return 0
+  return (datetime.now() - when).total_seconds()
+
 def check_position(line):
   """Notify the first time our queue position reaches the alert threshold.
 
@@ -89,6 +101,8 @@ def check_position(line):
   if not m:
     return
   if not any(bot in line for bot in args.bot_nicks.split(',')): # must be the bot's reply, not chatter
+    return
+  if line_age(line) > 300: # ignore the historical last line replayed when a parser (re)starts
     return
   pos = int(m.group(1))
   fire = False
