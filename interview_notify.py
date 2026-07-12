@@ -25,6 +25,7 @@ parser.add_argument('--topic', required=True, help='ntfy topic name to POST noti
 parser.add_argument('--server', default=default_server, help='ntfy server to POST notifications to – default: {}'.format(default_server))
 parser.add_argument('--log-dir', required=True, dest='path', type=Path, help='path to IRC logs (continuously checks for recently-active files to parse)')
 parser.add_argument('--nick', required=True, help='your IRC nick')
+parser.add_argument('--notify-others', default=True, action=argparse.BooleanOptionalAction, help='notify when someone else is called to interview – default: enabled')
 parser.add_argument('--check-bot-nicks', default=True, action=argparse.BooleanOptionalAction, help="attempt to parse bot's nick. disable if your log files are not like '<nick> message' – default: enabled")
 parser.add_argument('--bot-nicks', metavar='NICKS', default='Gatekeeper', help='comma-separated list of bot nicks to watch – default: Gatekeeper')
 parser.add_argument('--mode', choices=['red', 'ops'], default='red', help='interview mode (affects triggers) – default: red')
@@ -80,7 +81,7 @@ def log_parse(log_path, parser_stop):
     elif args.nick in remove_html_tags(line) and ('say my name' in line.lower() or 'type my name' in line.lower()):
       logging.info('YOUR INTERVIEW IS HAPPENING ❗')
       notify(line, title='Your interview is happening❗', tags='rotating_light', priority=5)
-    elif check_trigger(line, 'Currently interviewing:'):
+    elif args.notify_others and check_trigger(line, 'Currently interviewing:'):
       logging.info('interview detected ⚠️')
       notify(line, title='Interview detected', tags='warning')
     elif check_trigger(line, '{}:'.format(args.nick), disregard_bot_nicks=True):
