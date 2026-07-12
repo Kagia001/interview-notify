@@ -44,8 +44,12 @@ def log_scan():
   while True:
     active = active_logs()
     for path in active:
-      if path not in parsers:
-        logging.info('scanner: watching log "{}"'.format(path.name))
+      entry = parsers.get(path)
+      if entry is None or not entry[0].is_alive():
+        if entry is None:
+          logging.info('scanner: watching log "{}"'.format(path.name))
+        else:
+          logging.warning('scanner: parser for "{}" stopped; restarting'.format(path.name))
         parser, parser_stop = spawn_parser(path)
         parser.start()
         parsers[path] = (parser, parser_stop)
@@ -126,11 +130,14 @@ def log_parse(log_path, parser_stop):
 
 def tail(path, parser_stop):
   """Poll file and yield lines as they appear"""
-  with FileReadBackwards(path) as f:
-    last_line = f.readline()
-    if last_line:
-      yield last_line
-  with open(path) as f:
+  try:
+    with FileReadBackwards(path) as f:
+      last_line = f.readline()
+      if last_line:
+        yield last_line
+  except Exception as e:
+    logging.warning('tail: could not read last line of "{}" ({})'.format(path.name, e))
+  with open(path, encoding='utf-8', errors='replace') as f: # errors='replace': survive stray bytes in IRC chat
     f.seek(0, 2) # os.SEEK_END
     while not parser_stop.is_set():
       line = f.readline()
@@ -177,9 +184,12 @@ def notify(data, topic=None, server=None, **kwargs):
   if server[-1] != '/': server += '/'
   target = urljoin(server, topic, allow_fragments=False)
   headers = {k.capitalize():str(v).encode('utf-8') for (k,v) in kwargs.items()}
-  requests.post(target,
-                data=data.encode(encoding='utf-8'),
-                headers=headers)
+  try:
+    requests.post(target,
+                  data=data.encode(encoding='utf-8'),
+                  headers=headers)
+  except Exception as e: # a transient network error must not kill the parser thread
+    logging.warning('notify: POST to {} failed ({})'.format(target, e))
 
 def anon_telemetry():
   """Send anonymous telemetry
