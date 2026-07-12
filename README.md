@@ -42,13 +42,11 @@ pretty self explanatory if you read the help:
 ```
 ./interview_notify.py -h
 
-usage: interview_notify.py [-h] --topic TOPIC [--server SERVER] --log-dir PATH
-                           --nick NICK [--notify-others | --no-notify-others]
-                           [--position-alert N] [--poll-position]
-                           [--poll-interval MIN,MAX]
-                           [--check-bot-nicks | --no-check-bot-nicks]
-                           [--bot-nicks NICKS] [--mode {red,ops}] [-v]
-                           [--version]
+usage: interview_notify.py [-h] --topic TOPIC [--server SERVER] --log-dir PATH --nick NICK [--notify-others | --no-notify-others] [--position-alert N] [--poll-position] [--poll-interval MIN,MAX]
+                           [--check-bot-nicks | --no-check-bot-nicks] [--bot-nicks NICKS] [--mode {red,ops}] [-v] [--version]
+
+IRC Interview Notifier v1.3.0
+https://github.com/ftc2/interview-notify
 
 options:
   -h, --help            show this help message and exit
@@ -63,9 +61,9 @@ options:
   --poll-interval MIN,MAX
                         random minutes between !position sends – default: 30,60
   --check-bot-nicks, --no-check-bot-nicks
-                        attempt to parse bot's nick. disable if your log files are not like '<nick> message' – default: enabled
-  --bot-nicks NICKS     comma-separated list of bot nicks to watch – default: Gatekeeper
-  --mode {red,ops}      interview mode (affects triggers) – default: red
+                        attempt to parse bot's nick. disable if your log files are not like '<nick> message' – default: enabled
+  --bot-nicks NICKS     comma-separated list of bot nicks to watch – default: Gatekeeper
+  --mode {red,ops}      interview mode (affects triggers) – default: red
   -v                    verbose (invoke multiple times for more verbosity)
   --version             show program's version number and exit
 
