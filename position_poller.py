@@ -41,17 +41,17 @@ def send_via_hexchat(target, command, context_channel=None, context_server=None)
 
 
 def _poll_loop(stop_event, target, command, interval_min, interval_max, context_channel, context_server):
-  """Send `command` to `target` on a random interval in [min, max] seconds until stopped."""
+  """Send `command` to `target` once immediately, then on a random interval until stopped."""
   while not stop_event.is_set():
-    delay = random.uniform(interval_min, interval_max)
-    logging.info('position poller: next "{}" to {} in {:.0f}s'.format(command, target, delay))
-    if stop_event.wait(delay):  # interruptible sleep; also delays the FIRST send
-      break
     try:
       send_via_hexchat(target, command, context_channel, context_server)
       logging.info('position poller: sent "{}" to {}'.format(command, target))
     except Exception as e:
       logging.warning('position poller: send failed ({}: {})'.format(type(e).__name__, e))
+    delay = random.uniform(interval_min, interval_max)
+    logging.info('position poller: next "{}" to {} in {:.0f}s'.format(command, target, delay))
+    if stop_event.wait(delay):  # interruptible sleep between sends
+      break
 
 
 def start(stop_event, target, command='!position', interval_min=1800, interval_max=3600,
