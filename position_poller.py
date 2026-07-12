@@ -53,11 +53,25 @@ def _poll_loop(stop_event, target, command, interval_min, interval_max, context_
 
 def start(stop_event, target, command='!position', interval_min=1800, interval_max=3600,
           context_channel=None, context_server=None):
-  """Start the poller in a background thread. Returns the thread, or None if unavailable."""
+  """Start the poller in a background thread. Returns the thread, or None if unavailable.
+
+  Only reached when the user explicitly passed --poll-position. On an
+  unsupported setup (e.g. Windows, or no python3-dbus) we say exactly what is
+  needed rather than failing silently or crashing. Users who do NOT request the
+  feature never import this module, so they are unaffected.
+  """
   try:
-    import dbus  # noqa: F401 - fail fast with a clear message if the binding is missing
+    import dbus
   except ImportError:
-    logging.error('position poller: the "dbus" Python module is required (try: pip install dbus-python) - poller disabled')
+    logging.error('--poll-position requires HexChat on Linux with the python3-dbus module, which is '
+                  'not available here. Install it (e.g. "apt install python3-dbus") or drop '
+                  '--poll-position. Continuing without the position poller.')
+    return None
+  try:
+    dbus.SessionBus()
+  except Exception as e:
+    logging.error('--poll-position needs a D-Bus session bus (Linux/HexChat only), which is '
+                  'unavailable here ({}). Continuing without the position poller.'.format(e))
     return None
   thread = threading.Thread(
     target=_poll_loop,
