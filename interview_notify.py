@@ -241,16 +241,18 @@ if args.path.is_file():
 elif not args.path.is_dir():
   crit_quit('log path invalid')
 
-scanner = threading.Thread(target=log_scan)
-scanner.start()
-
 if args.poll_position:
   import position_poller
   try:
-    lo, hi = (float(m) * 60 for m in args.poll_interval.split(','))
+    lo, hi = sorted(float(m) * 60 for m in args.poll_interval.split(',')) # sorted: tolerate MAX,MIN
   except ValueError:
-    crit_quit('--poll-interval must be "MIN,MAX" minutes, e.g. 30,60')
+    crit_quit('--poll-interval must be two numbers "MIN,MAX" in minutes, e.g. 30,60')
+  if lo < 60:
+    crit_quit('--poll-interval minimum is 1 minute, to avoid flooding the bot')
   position_poller.start(threading.Event(), target=args.bot_nicks.split(',')[0],
                         interval_min=lo, interval_max=hi, context_channel='#red-invites')
+
+scanner = threading.Thread(target=log_scan)
+scanner.start()
 
 anon_telemetry()
