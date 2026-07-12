@@ -88,6 +88,8 @@ def check_position(line):
   m = re.search(r'You are in position (\d+) of \d+', line)
   if not m:
     return
+  if not any(bot in line for bot in args.bot_nicks.split(',')): # must be the bot's reply, not chatter
+    return
   pos = int(m.group(1))
   fire = False
   with position_lock:
