@@ -19,6 +19,7 @@ YEAR = re.compile(r'BEGIN LOGGING AT .* (\d{4})')
 CALL = re.compile(r'Currently interviewing: (\S+) ::: (#\S+) ::: (\d+) remaining')
 KICK = re.compile(r'Gatekeeper has kicked (\S+) from #\S+ \((.*)\)')
 SELF_KICK = re.compile(r'You have been kicked from #\S+ by Gatekeeper \((.*)\)')
+POSITION = re.compile(r'You are in position (\d+) of (\d+)')
 
 def verdict(reason):
   """Map a kick reason to an interview outcome, or None if it isn't one."""
@@ -83,10 +84,50 @@ def match(calls, results):
   orphans = [r for i, r in enumerate(results) if i not in used]
   return orphans
 
+def parse_positions(paths):
+  """Extract every "You are in position N of M" observation, in time order."""
+  obs = []
+  for path in paths:
+    year = datetime.now().year
+    with open(path, encoding='utf-8', errors='replace') as f:
+      for line in f:
+        y = YEAR.search(line)
+        if y:
+          year = int(y.group(1))
+          continue
+        m = TS.match(line)
+        p = m and POSITION.search(line)
+        if not p:
+          continue
+        try:
+          when = datetime.strptime('{} {}'.format(year, m.group(1)), '%Y %b %d %H:%M:%S')
+        except ValueError:
+          continue
+        obs.append({'when': when, 'pos': int(p.group(1)), 'total': int(p.group(2))})
+  obs.sort(key=lambda o: o['when'])
+  return obs
+
+def print_positions(obs):
+  print('\nPOSITION OVER TIME (your queue position; unchanged observations collapsed)')
+  print('{:<17} {:>5} {:>6} {:>7}'.format('WHEN', 'POS', 'OF', 'CHANGE'))
+  print('-' * 40)
+  prev = None
+  for o in obs:
+    if o['pos'] == prev:
+      continue
+    change = '' if prev is None else '{:+d}'.format(o['pos'] - prev)
+    print('{:<17} {:>5} {:>6} {:>7}'.format(o['when'].strftime('%b %d %H:%M'), o['pos'], o['total'], change))
+    prev = o['pos']
+  print('-' * 40)
+  if obs:
+    best = min(obs, key=lambda o: o['pos'])
+    print('{} observations | best: #{} on {}'.format(len(obs), best['pos'], best['when'].strftime('%b %d %H:%M')))
+
 def main():
   ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
   ap.add_argument('--log-dir', required=True, type=Path, help='directory of IRC log files')
   ap.add_argument('--nick', help='your nick, to also attribute your own "You have been kicked" results')
+  ap.add_argument('--positions', action='store_true', help='also print your queue position over time')
   args = ap.parse_args()
   if not args.log_dir.is_dir():
     sys.exit('log-dir is not a directory')
@@ -118,6 +159,9 @@ def main():
     print('\nResults with no matching call in the logs (interview began before the log window):')
     for r in orphans:
       print('  {}  {:<20} {}'.format(r['when'].strftime('%b %d %H:%M'), r['nick'], r['outcome']))
+
+  if args.positions:
+    print_positions(parse_positions(paths))
 
 if __name__ == '__main__':
   main()
