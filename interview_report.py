@@ -110,12 +110,12 @@ def parse_positions(paths):
   return obs
 
 def print_positions(obs):
-  print('\nPOSITION OVER TIME (your queue position; unchanged observations collapsed)')
+  print('\nPOSITION OVER TIME (unchanged readings collapsed; latest reading always shown)')
   print('{:<17} {:>5} {:>6} {:>7}'.format('WHEN', 'POS', 'OF', 'CHANGE'))
   print('-' * 40)
   prev = None
-  for o in obs:
-    if o['pos'] == prev:
+  for i, o in enumerate(obs):
+    if o['pos'] == prev and i != len(obs) - 1: # never collapse the most recent reading
       continue
     change = '' if prev is None else '{:+d}'.format(o['pos'] - prev)
     print('{:<17} {:>5} {:>6} {:>7}'.format(o['when'].strftime('%b %d %H:%M'), o['pos'], o['total'], change))
@@ -123,7 +123,10 @@ def print_positions(obs):
   print('-' * 40)
   if obs:
     best = min(obs, key=lambda o: o['pos'])
-    print('{} observations | best: #{} on {}'.format(len(obs), best['pos'], best['when'].strftime('%b %d %H:%M')))
+    cur = obs[-1]
+    print('current: #{} of {} as of {} | best: #{} on {} | {} readings'.format(
+      cur['pos'], cur['total'], cur['when'].strftime('%b %d %H:%M'),
+      best['pos'], best['when'].strftime('%b %d %H:%M'), len(obs)))
 
 def main():
   ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
