@@ -10,6 +10,8 @@ from urllib.parse import urljoin
 VERSION = '1.2.10-Kagia001sFork'
 default_server = 'https://ntfy.sh/'
 ACTIVE_WINDOW = 600 # seconds: also watch logs modified this close to the newest one
+position_lock = threading.Lock()
+position_armed = True # eligible to fire the position alert on the next drop to/below the threshold
 
 parser = argparse.ArgumentParser(prog='interview_notify.py',
   description='IRC Interview Notifier v{}\nhttps://github.com/ftc2/interview-notify'.format(VERSION),
@@ -26,6 +28,7 @@ parser.add_argument('--server', default=default_server, help='ntfy server to POS
 parser.add_argument('--log-dir', required=True, dest='path', type=Path, help='path to IRC logs (continuously checks for recently-active files to parse)')
 parser.add_argument('--nick', required=True, help='your IRC nick')
 parser.add_argument('--notify-others', default=True, action=argparse.BooleanOptionalAction, help='notify when someone else is called to interview – default: enabled')
+parser.add_argument('--position-alert', metavar='N', type=int, default=10, help='notify the first time your queue position reaches N or below; 0 to disable – default: 10')
 parser.add_argument('--poll-position', default=False, action='store_true', help='periodically PM !position to the bot via a running HexChat client (Linux/HexChat only, uses your existing connection) – default: disabled')
 parser.add_argument('--poll-interval', metavar='MIN,MAX', default='30,60', help='random minutes between !position sends – default: 30,60')
 parser.add_argument('--check-bot-nicks', default=True, action=argparse.BooleanOptionalAction, help="attempt to parse bot's nick. disable if your log files are not like '<nick> message' – default: enabled")
@@ -69,11 +72,36 @@ def spawn_parser(log_path):
   thread = threading.Thread(target=log_parse, args=(log_path, parser_stop))
   return thread, parser_stop
 
+def check_position(line):
+  """Notify the first time our queue position reaches the alert threshold.
+
+  Re-arms once the position climbs back above the threshold, so a netsplit that
+  resets the queue and a later re-approach will alert again.
+  """
+  global position_armed
+  if args.position_alert <= 0:
+    return
+  m = re.search(r'You are in position (\d+) of \d+', line)
+  if not m:
+    return
+  pos = int(m.group(1))
+  fire = False
+  with position_lock:
+    if pos > args.position_alert:
+      position_armed = True
+    elif position_armed:
+      position_armed = False
+      fire = True
+  if fire:
+    logging.info('position alert: now #{} in the queue ❗'.format(pos))
+    notify(line, title="You're #{} in the queue!".format(pos), tags='checkered_flag', priority=5)
+
 def log_parse(log_path, parser_stop):
   """Parse log file and notify on triggers (parser thread)"""
   logging.info('parser: using "{}"'.format(log_path.name))
   for line in tail(log_path, parser_stop):
     logging.debug(line)
+    check_position(line)
     if check_trigger(line, 'Currently interviewing: {}'.format(args.nick)):
       logging.info('YOUR INTERVIEW IS HAPPENING ❗')
       notify(line, title='Your interview is happening❗', tags='rotating_light', priority=5)
