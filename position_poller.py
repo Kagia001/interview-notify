@@ -10,10 +10,13 @@ USE AT YOUR OWN RISK. Automated messages can look like botting. Private
 trackers (RED among them) penalize automation and idling, so keep the interval
 long, and don't enable this unless you accept that risk.
 
-Requires the `dbus` Python module (python3-dbus) and a running HexChat.
+Requires system `python3-dbus` and a running HexChat. NOTE: a pipenv/virtualenv
+is isolated from the system python3-dbus, so `import dbus` will fail inside one
+even though the package is installed. Run this with your system python3, or make
+the venv with --system-site-packages.
 """
 
-import logging, threading, random
+import logging, threading, random, sys
 
 
 def send_via_hexchat(target, command, context_channel=None, context_server=None):
@@ -63,9 +66,11 @@ def start(stop_event, target, command='!position', interval_min=1800, interval_m
   try:
     import dbus
   except ImportError:
-    logging.error('--poll-position requires HexChat on Linux with the python3-dbus module, which is '
-                  'not available here. Install it (e.g. "apt install python3-dbus") or drop '
-                  '--poll-position. Continuing without the position poller.')
+    logging.error('--poll-position needs the python3-dbus module, which this Python ({}) cannot '
+                  'import. Install it from your distro (apt/dnf install python3-dbus, or pacman -S '
+                  'python-dbus) - NOT pip. If it IS installed but you are in a pipenv/virtualenv, '
+                  'the venv hides the system module: run with your system python3, or recreate the '
+                  'venv with --system-site-packages. Continuing without the position poller.'.format(sys.executable))
     return None
   try:
     dbus.SessionBus()
