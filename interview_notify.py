@@ -26,6 +26,8 @@ parser.add_argument('--server', default=default_server, help='ntfy server to POS
 parser.add_argument('--log-dir', required=True, dest='path', type=Path, help='path to IRC logs (continuously checks for recently-active files to parse)')
 parser.add_argument('--nick', required=True, help='your IRC nick')
 parser.add_argument('--notify-others', default=True, action=argparse.BooleanOptionalAction, help='notify when someone else is called to interview – default: enabled')
+parser.add_argument('--poll-position', default=False, action='store_true', help='periodically PM !position to the bot via a running HexChat client (Linux/HexChat only, uses your existing connection) – default: disabled')
+parser.add_argument('--poll-interval', metavar='MIN,MAX', default='30,60', help='random minutes between !position sends – default: 30,60')
 parser.add_argument('--check-bot-nicks', default=True, action=argparse.BooleanOptionalAction, help="attempt to parse bot's nick. disable if your log files are not like '<nick> message' – default: enabled")
 parser.add_argument('--bot-nicks', metavar='NICKS', default='Gatekeeper', help='comma-separated list of bot nicks to watch – default: Gatekeeper')
 parser.add_argument('--mode', choices=['red', 'ops'], default='red', help='interview mode (affects triggers) – default: red')
@@ -187,5 +189,14 @@ elif not args.path.is_dir():
 
 scanner = threading.Thread(target=log_scan)
 scanner.start()
+
+if args.poll_position:
+  import position_poller
+  try:
+    lo, hi = (float(m) * 60 for m in args.poll_interval.split(','))
+  except ValueError:
+    crit_quit('--poll-interval must be "MIN,MAX" minutes, e.g. 30,60')
+  position_poller.start(threading.Event(), target=args.bot_nicks.split(',')[0],
+                        interval_min=lo, interval_max=hi, context_channel='#red-invites')
 
 anon_telemetry()
