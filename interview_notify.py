@@ -110,6 +110,7 @@ def check_trigger(line, trigger, disregard_bot_nicks=False):
     return trigger in remove_html_tags(line)
   else:
     triggers = bot_nick_prefix(trigger)
+    line = line.replace('\t', ' ') # HexChat delimits '<nick>\tmessage' with a tab
     return any(trigger in line for trigger in triggers)
 
 def check_words(line, triggers, check_nick=False):
