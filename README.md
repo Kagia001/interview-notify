@@ -32,7 +32,12 @@ there is also an optional queue-position poller and a companion report tool — 
   - `git clone https://github.com/ftc2/interview-notify.git`
 - `python3 interview_notify.py`
 
-The optional `--poll-position` feature additionally needs Linux, a running HexChat, and the `python3-dbus` module (e.g. `apt install python3-dbus`). Everything else works without it.
+**The optional `--poll-position` feature needs Linux, a running HexChat, and the system `python3-dbus` module.** Install it from your distro, NOT pip (pip's `dbus-python` compiles against system libraries and usually fails):
+- Debian/Ubuntu: `apt install python3-dbus`
+- Fedora: `dnf install python3-dbus`
+- Arch: `pacman -S python-dbus`
+
+**Gotcha:** this repo ships a `Pipfile`, so if you `pipenv install` you end up in a virtualenv that is isolated from the system `python3-dbus` — the poller then fails with a "cannot import dbus" error *even though the package is installed*. Fix: run interview-notify with your **system** `python3` (which also needs `requests`: `apt install python3-requests`), or recreate the venv with `--system-site-packages`. Everything except the poller works fine inside the venv; the poller is off by default.
 
 ## using
 
