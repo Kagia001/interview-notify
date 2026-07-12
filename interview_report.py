@@ -96,7 +96,9 @@ def parse_positions(paths):
           year = int(y.group(1))
           continue
         m = TS.match(line)
-        p = m and POSITION.search(line)
+        if not m or 'Gatekeeper' not in line: # must be the bot's reply, not chatter quoting it
+          continue
+        p = POSITION.search(line)
         if not p:
           continue
         try:
