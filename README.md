@@ -1,7 +1,7 @@
 # interview-notify
 Push notifications from IRC for your private tracker interviews
 
-Heads up: the original project sends anonymous telemetry via ntfy. Specifically, your nick hashed, mode (red/orp), and version. I have not removed this, since the data collected is very minimal and your IP cannot be saved, but I think this should be disclosed. If you wish to disable this, you may comment out lines 156-158 in interview_notify.py.
+Heads up: this script sends anonymous telemetry data via ntfy. Specifically, your hashed nick, mode (red/ops), and version number. The data collected is very minimal and your IP can not be seen. If you wish to disable this, comment out the anon_telemetry() call at the bottom of interview_notify.py.
 
 <img src="https://i.imgur.com/ZLFyxgY.png">
 
