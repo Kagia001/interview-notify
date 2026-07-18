@@ -8,7 +8,7 @@ from file_read_backwards import FileReadBackwards
 from hashlib import sha256
 from urllib.parse import urljoin
 
-VERSION = '1.3.0'
+VERSION = '1.3.1'
 default_server = 'https://ntfy.sh/'
 ACTIVE_WINDOW = 600 # seconds: also watch logs modified this close to the newest one
 position_lock = threading.Lock()
